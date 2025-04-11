@@ -79,10 +79,10 @@ for bond in bond_topology:
         bond_vector_normalized = bond_vector / bond_length
             
         # Determine fiber IDs of molecules
-        fiber_id1 = (molecule_id1 - 1) // 12 + 1  # Assuming 12 molecules per fiber, indexed from 1
+        fiber_id1 = (molecule_id1 - 1) // 12 + 1  # Assuming 12 molecules per fiber
         fiber_id2 = (molecule_id2 - 1) // 12 + 1
 
-        # Check if both molecules belong to the same fiber and are separated by 2 in sequence
+        # Check if both molecules belong to the same fiber 
         if fiber_id1 != fiber_id2:
             # Ensure molecule_id1 < molecule_id2 to avoid duplicates
             if molecule_id1 < molecule_id2:
@@ -106,37 +106,40 @@ for bond in bond_topology:
             min_angle_p2 = np.min(angles_p2)
             if ( min_angle_p1 < np.pi/4 or min_angle_p1 > 3*np.pi/4 ) and ( min_angle_p2 < np.pi/4 or min_angle_p2 > 3*np.pi/4 ):
                 bond_type = 'face-to-face'
-                # Correctly initialize or update the specific category dictionary
+                
                 if fiber_id1 not in fiber_bond_counts_face_to_face:
                     fiber_bond_counts_face_to_face[fiber_id1] = set()
                 fiber_bond_counts_face_to_face[fiber_id1].add(bond_pair)
             elif (min_angle_p1 >= np.pi/4 and min_angle_p1<= 3*np.pi/4) and (min_angle_p2 >= np.pi/4 and min_angle_p2<= 3*np.pi/4):
                 bond_type = 'side-to-side'
-                # Same for side-to-side
+
+                
                 if fiber_id1 not in fiber_bond_counts_side_to_side:
                     fiber_bond_counts_side_to_side[fiber_id1] = set()
                 fiber_bond_counts_side_to_side[fiber_id1].add(bond_pair)
             else:
                 bond_type = 'face-to-side'
-                # And for face-to-side
+
+                
                 if fiber_id1 not in fiber_bond_counts_face_to_side:
                     fiber_bond_counts_face_to_side[fiber_id1] = set()
                 fiber_bond_counts_face_to_side[fiber_id1].add(bond_pair)
+
             
-            # Still increment the total bond count for fiber_id1
             if fiber_id1 not in fiber_bond_counts:
                 fiber_bond_counts[fiber_id1] = set()
             fiber_bond_counts[fiber_id1].add(bond_pair)
 
 
 bond_counts = []  
-# Initialize lists to store bond counts for each category
-total_bond_counts = []  # Make sure this is defined
+
+total_bond_counts = []  
+
 ff_counts = []
 ss_counts = []
 fs_counts = []
 
-# Combined loop to analyze bond counts across all fibers and types
+
 for fiber_id in sorted(set(fiber_bond_counts.keys()) | 
                        set(fiber_bond_counts_face_to_face.keys()) | 
                        set(fiber_bond_counts_side_to_side.keys()) | 
@@ -146,7 +149,8 @@ for fiber_id in sorted(set(fiber_bond_counts.keys()) |
     ss_bonds = fiber_bond_counts_side_to_side.get(fiber_id, set())
     fs_bonds = fiber_bond_counts_face_to_side.get(fiber_id, set())
 
-    # Append counts to respective lists
+
+                           
     total_bond_counts.append(len(total_bonds))
     ff_counts.append(len(ff_bonds))
     ss_counts.append(len(ss_bonds))
@@ -154,7 +158,8 @@ for fiber_id in sorted(set(fiber_bond_counts.keys()) |
 
     print(f"Fiber {fiber_id}: Total Bonds: {len(total_bonds)}, Face-to-Face: {len(ff_bonds)}, Side-to-Side: {len(ss_bonds)}, Face-to-Side: {len(fs_bonds)}")
 
-# Function to calculate and print mean and std deviation, now correctly returning values
+
+
 def calculate_stats(counts, label):
     mean_counts = np.mean(counts)
     std_counts = np.std(counts)
@@ -162,23 +167,20 @@ def calculate_stats(counts, label):
     print(f"Standard deviation of {label}: {std_counts}")
     return mean_counts, std_counts  # Ensure this line is correctly returning values
 
-# Calculate and print stats for each bond type and total bonds
+
+
 mean_total, std_total = calculate_stats(total_bond_counts, 'total bond counts')
 mean_ff, std_ff = calculate_stats(ff_counts, 'face-to-face bond counts')
 mean_ss, std_ss = calculate_stats(ss_counts, 'side-to-side bond counts')
 mean_fs, std_fs = calculate_stats(fs_counts, 'face-to-side bond counts')
 
-# Define the file to append the results to
-output_file_path = 'analysis_results_inter_2.csv'  # Use a specific path for writing in this environment
+output_file_path = 'analysis_results_inter.csv'
 
-# Open the file in append mode and write the results
 with open(output_file_path, 'a') as file:
-    # Check if file is empty and write header accordingly
-    file.seek(0, 2)  # Move to the end of the file
-    if file.tell() == 0:  # File is empty, write header
+    file.seek(0, 2)  
+    if file.tell() == 0:  
         file.write('Data Directory,Mean Total Bonds,Std Total Bonds,Mean FF,Std FF,Mean FS,Std FS,Mean SS,Std SS\n')
     
-    # Write the data, ensure variable names match
     file.write(f"{data_directory},{mean_total},{std_total},{mean_ff},{std_ff},{mean_fs},{std_fs},{mean_ss},{std_ss}\n")
 
 print(f"Results for directory {data_directory} appended to {output_file_path}.")
