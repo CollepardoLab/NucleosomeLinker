@@ -1,12 +1,10 @@
 from pprint import PrettyPrinter
 
-# Importing libraries
 import numpy as np
 import matplotlib.pyplot as plt
 from numpy import pi
 from dataclasses import dataclass
 
-# Set font for labels in coming figures
 font16 = {
     "family": "serif",
     "color": "black",
@@ -14,7 +12,6 @@ font16 = {
     "size": 16,
 }
 
-# Set font for labels in coming figures
 font20 = {
     "family": "serif",
     "color": "black",
@@ -22,7 +19,6 @@ font20 = {
     "size": 20,
 }
 
-# Twist deformation energy of DNA linker length from helical parameters
 
 
 def Etwist_HEL(n_bp, kT):
@@ -53,14 +49,12 @@ def Etwist(n_bp, kT):
     Delta_tw_rad = dev_turns * 2 * pi
     Etw = 0.5 * s * (Delta_tw_rad) ** 2
     
-    # Print energy cost for each point
     print(f"Linker length: {n_bp} bp, Energy cost: {Etw} kcal/mol")
     
     return Etw
 
 
 def Eval_and_plot_Energies():
-    # Boltzmann constant k_B in kcal_mol/K
     kB = 1.987204259e-3
     T = 300
     kT = kB * T
