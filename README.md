@@ -14,10 +14,10 @@ To run a demo for a slab system:
 
 1. Move to the "Demo" directory
 
-2. Run with lammps
+2. Run with lammps, on at least 16 cores
 
 ```
-mpirun -np 1 ./lmp_DNA_mpi -in in.run
+mpirun -np 16 ./lmp_DNA_mpi -in in.run
 ```
 
 It will produce two LAMMPS trajectory file "dna.dump" and "cores.dump", a reduced version without the DNA. These can be viewed in Ovito (https://www.ovito.org/), VMD or Pymol. 
