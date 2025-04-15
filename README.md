@@ -6,7 +6,11 @@ We are delighted to share our model for chromatin phase separation and analysis 
 For questions, contact Julia Maristany in mjm261@cam.ac.uk
 
 ## System requirements
-Linux with C++ compilers with MPI. Tested on: CSD3 peta-4 cluster (https://www.hpc.cam.ac.uk/systems/peta-4) with Intel 2017 compliers, Archer HPC (Cray system with GNU and Cray compilers) and Sulis Tier 2 HPC.
+- Linux operating system  
+- C++ compiler with MPI support (e.g., Intel, GCC, or Cray)  
+- MPI library (e.g., Intel MPI, OpenMPI)  
+- Python 3.6+ for analysis scripts  
+- Optional: Ovito, VMD, or PyMOL for trajectory visualization
 
 ## Installation Guide
 Please follow the instructions for building our custom LAMMPS code from the multiscale model repository: https://github.com/CollepardoLab/CollepardoLab_Chromatin_Model
