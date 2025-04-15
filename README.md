@@ -16,7 +16,9 @@ To run a demo for a slab system:
 
 2. Run with lammps
 
-| mpirun -np 1 ./lmp_DNA_mpi -in in.run
+```
+mpirun -np 1 ./lmp_DNA_mpi -in in.run
+```
 
 It will produce two LAMMPS trajectory file "dna.dump" and "cores.dump", a reduced version without the DNA. These can be viewed in Ovito (https://www.ovito.org/), VMD or Pymol. 
 
