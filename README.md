@@ -50,4 +50,4 @@ Under Analysis, all custom Python scripts to analyze the trajectories can be fou
 
 ## License
 
-This project is licensed under 
+This project is licensed under GNU General Public License v3.0.
