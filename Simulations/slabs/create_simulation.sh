@@ -14,7 +14,7 @@ done
 
 read -p "How many data files (N) per salt? " N
 
-NFOLDERS = 1
+NFOLDERS= 1
 
 declare -a FOLDERS
 
@@ -162,5 +162,5 @@ for salt in "${SALTS[@]}"; do
 done
 
 echo
-echo "Done! Each salt in '$SIMNAME' now has up to N unique data files, plus snippet files with sed replacements."
+echo "Done! Each salt in '$SIMNAME' now has up to $N unique data files, plus snippet files with sed replacements."
 
