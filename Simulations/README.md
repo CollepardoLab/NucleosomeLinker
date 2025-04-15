@@ -40,5 +40,13 @@ and extract frames by
 bash get_frames.sh
 ```
 
+Finally, run 
+
+```
+python multiple_dump_to_data.py
+```
+
+to ensure the frames have adequate file structure to be parsed as inputs for the slab conformation.
+
 
 
