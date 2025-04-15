@@ -1,0 +1,236 @@
+plugin load chromatin.so
+
+# VARIABLES
+variable fname index data.txt
+variable simname index dna
+variable DT equal 100
+variable T equal 300.0
+variable E1 equal EECC
+#variable E2 equal 6.0
+variable RC equal 5.0
+variable A equal SSCC
+variable B equal 40
+variable SEED equal 21736
+
+variable AC equal "1.122*v_A"
+variable BC equal "3*v_B"
+
+variable AC equal "1.122*v_A"
+variable BC equal "3*v_B"
+
+variable E3 equal "0.25*v_E1"
+
+variable SP equal "0.667*v_A" #Sigma of my protein
+variable SM equal "0.5*v_SP+0.5*v_A" #Mixing rules dna_prot
+
+variable SSP equal "1.122*v_SP" #Both repulsive
+variable SSM equal "1.122*v_SM"
+
+# Initialization
+
+units           real
+atom_style   hybrid ellipsoid angle charge
+boundary p p p
+
+log     log.dna.txt
+
+#read_data new_data_1.txt extra/atom/types 2 group temp
+#change_box all x final -3500.0 3500.0 y final -2500.0 3000.0 z final -2200.0 2700.0
+
+include data_files.in
+
+#delete_atoms group temp
+#write_dump all atom initial_state.dump
+
+#write_data initial.config
+#write_restart initial.restart
+
+#region r1 block -3250.0 3250.0 -2750.0 2750.0 2200.0 2300.0
+#region r2 block -3250.0 3250.0 -2750.0 2750.0 -2300.0 -2200.0
+
+write_dump all atom initial_state_wall.dump
+write_data initial_wall.config
+write_restart initial_wall.restart
+
+set type 1 mass  10000
+set type 2 mass  3250
+set type 3 mass  325
+set type 4 mass  3250
+set type 5 mass  6000 #Mass reduction for CENP-B globular
+set type 6 mass  1600
+
+set type 7 mass 1000
+set type 8 mass 1000
+
+set type 1 shape 56 56 40
+set type 2 shape 24 24 24
+set type 3 shape 24 24 24
+set type 4 shape 24 24 24
+set type 5 shape 34 34 34 #Change size of CENP-B on input
+set type 6 shape 16 16 16
+
+set type 7 mol 0
+set type 8 mol 0
+set type 2 mol 0
+set type 4 mol 0
+set type 5 mol 0
+set type 6 mol 0
+
+create_atoms 7 random 2000 123 r1
+create_atoms 8 random 2000 123 r2
+
+group wall1 region r1
+group wall2 region r2
+
+#**** pair params go here****
+#
+pair_style lj/cut ${BC}
+pair_coeff 1 1  0.1 55 61.71
+pair_coeff 1 2  ${E1} ${B} ${BC}
+pair_coeff 1 3  ${E1} ${B} ${BC}
+pair_coeff 1 4  ${E1} ${B} ${BC} #Igual luego hay que bajarla
+pair_coeff 1 5  0.1 45.0 50.1    #Repulsive, weakly repulsive
+pair_coeff 1 6  ${E3} 36.0 108   #A quarter of DNA
+
+pair_coeff 2 2  0.1 ${A} ${AC}
+pair_coeff 2 3  0.1 ${A} ${AC}
+pair_coeff 2 4  0.1 ${A} ${AC}
+pair_coeff 2 5  0.01 29.0 32.53   #Should be kinda inert, weak
+pair_coeff 2 6  0.025 ${SM} ${SSM} #Repulsive, weak, might need to make stronger
+
+pair_coeff 3 3  0.1 ${A} ${AC}
+pair_coeff 3 4  0.1 ${A} ${AC}
+pair_coeff 3 5  0.025 29.0 32.53 #Repulsive, weak
+pair_coeff 3 6  0.025 ${SM} ${SSM}
+
+pair_coeff 4 4  0.1 ${A} ${AC}
+pair_coeff 4 5  0.025 29.0 32.53 #Repulsive, weak
+pair_coeff 4 6  0.025 ${SM} ${SSM} #Repulsive weak
+
+pair_coeff 5 5  0.05 34 38.2 #Repulsive half of nucl
+pair_coeff 5 6  0.01 25.0 28.05 #Very weakly rep
+
+pair_coeff 6 6 0.025 ${SP} ${SSP} #Repulsive, might need to make stronger
+
+pair_coeff * 7  0.1 100 112.2
+pair_coeff * 8  0.1 100 112.2
+
+pair_modify shift yes
+neighbor 50 bin
+neigh_modify every 1 delay 0
+
+special_bonds fene
+
+bond_style hybrid harmonic/DNA harmonic
+
+bond_coeff 1 harmonic/DNA 0.0 0.0
+bond_coeff 2 harmonic 10 20
+bond_coeff 3 harmonic 10 35
+
+group cores type 1
+group linker_dna type 2
+group nucl_dna type 3
+group nucl molecule > 0
+group cenp_dna type 4
+group cenpb type 5
+group idp type 6
+
+# remove interaction within rigid body
+neigh_modify exclude molecule/intra nucl
+neigh_modify exclude type 7 7 
+neigh_modify exclude type 7 8
+neigh_modify exclude type 8 8
+
+delete_atoms overlap 100 wall1 wall1
+delete_atoms overlap 100 wall2 wall2
+
+compute q all property/atom quatw quati quatj quatk
+compute shape all property/atom shapex shapey shapez
+compute rg all gyration
+
+restart 10000 restart.1 restart.2
+
+dump      1 all custom 10000 slab.dump &
+             id xu yu zu c_q[1] c_q[2] c_q[3] c_q[4] &
+              c_shape[1] c_shape[2] c_shape[3] mol type
+
+dump_modify 1 sort id
+run 0
+comm_style tiled
+
+fix rgw1 wall1 rigid single force 1 off off on torque 1 off off off langevin 300 300 1000000 123
+fix rgw2 wall2 rigid single force 1 off off on torque 1 off off off langevin 300 300 1000000 123
+
+# Fix definitions
+fix 1 nucl rigid/nve/small molecule                    # Rigid body integration for 'nucl'
+fix bl all balance 1000 1.0 rcb                        # Balance load across MPI processes
+fix 2 linker_dna nve/asphere                           # Aspherical integration for 'linker_dna'
+fix 3 linker_dna langevin 1.0 1.0 0.1 ${SEED} angmom 3.0   # Langevin thermostat with angular momentum
+fix 4 nucl langevin 1.0 1.0 0.1 ${SEED}                    # Langevin thermostat for rigid bodies
+fix 5 cenp_dna nve/asphere                             # Aspherical integration for 'cenp_dna'
+fix 6 cenp_dna langevin 1.0 1.0 0.1 ${SEED} angmom 3.0     # Langevin thermostat with angular momentum
+fix 7 cenpb nve                                        # Standard NVE integration for 'cenpb'
+fix 8 cenpb langevin 1.0 1.0 0.1 ${SEED}                   # Langevin thermostat
+fix 9 idp nve                                          # Standard NVE integration for 'idp'
+fix 10 idp langevin 1.0 1.0 0.1 ${SEED}                    # Langevin thermostat
+
+
+thermo_style    custom step temp pe ebond epair etotal spcpu c_rg lx ly lz press
+thermo          1000
+compute thermo linker_dna temp/asphere
+thermo_modify temp thermo
+
+fix 3 linker_dna  langevin ${T} ${T} 500000 ${SEED} angmom 3.0
+fix 4 nucl  langevin ${T} ${T} 500000 ${SEED}
+fix 6 cenp_dna langevin ${T} ${T} 500000 ${SEED} angmom 3.0
+fix 8 cenpb langevin ${T} ${T} 500000 ${SEED}
+fix 10 idp langevin ${T} ${T} 500000 ${SEED}
+timestep 50
+
+run 0
+run 150000
+
+#fix df all deform 1 x final 0 1200 y final 0 1200 units box remap none
+fix df all deform 1 x final -600 600 y final -600 600 units box remap none
+run 300000
+unfix df
+timestep 50
+run 300000
+fix af1 wall1 addforce 0 0 0.0015
+fix af2 wall2 addforce 0 0 -0.0015
+run 3000000
+
+fix 3 linker_dna  langevin ${T} 300 100000 ${SEED} angmom 3.0
+fix 4 nucl  langevin ${T} 300 100000 ${SEED}
+fix 6 cenp_dna langevin ${T} 300 100000 ${SEED} angmom 3.0
+fix 8 cenpb langevin ${T} 300 100000 ${SEED}
+fix 10 idp langevin ${T} 300 100000 ${SEED}
+
+#change_box all z final 0 8000
+
+change_box all z final -3500 3500
+run 50000
+
+unfix af1
+unfix af2
+unfix rgw1
+unfix rgw2
+
+delete_atoms group wall1
+delete_atoms group wall2
+
+fix 3 linker_dna  langevin 300 300 100000 ${SEED} angmom 3.0
+fix 4 nucl  langevin 300 300 100000 ${SEED}
+fix 6 cenp_dna langevin 300 300 100000 ${SEED} angmom 3.0
+fix 8 cenpb langevin 300 300 100000 ${SEED}
+fix 10 idp langevin 300 300 100000 ${SEED}
+run 10000
+timestep 100
+run 10000
+fix 3 linker_dna  langevin 300 300 100000 ${SEED} angmom 3.0
+fix 4 nucl  langevin 300 300 100000 ${SEED}
+fix 6 cenp_dna langevin 300 300 100000 ${SEED} angmom 3.0
+fix 8 cenpb langevin 300 300 100000 ${SEED}
+fix 10 idp langevin 300 300 100000 ${SEED}
+run 10000
+write_restart slab.restart

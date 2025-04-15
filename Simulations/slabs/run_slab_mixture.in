@@ -1,0 +1,186 @@
+plugin load chromatin.so
+# VARIABLES
+variable fname index relaxed_data.txt
+variable simname index dna
+
+variable DT equal 100
+variable T equal 300.0
+variable E1 equal EECC
+#variable E2 equal 6.0
+variable RC equal 5.0
+variable A equal SSCC
+variable B equal 40
+variable SEED equal 21873
+
+variable AC equal "1.122*v_A"
+variable BC equal "3*v_B"
+
+
+variable AC equal "1.122*v_A"
+variable BC equal "3*v_B"
+
+variable E3 equal "0.25*v_E1"
+
+variable SP equal "0.667*v_A" #Sigma of my protein
+variable SM equal "0.5*v_SP+0.5*v_A" #Mixing rules dna_prot
+
+variable SSP equal "1.122*v_SP" #Both repulsive
+variable SSM equal "1.122*v_SM"
+
+# Initialization
+units		real
+atom_style   hybrid ellipsoid angle charge
+
+boundary p p p
+
+log 	log.dna.txt
+read_restart restart.*
+
+#replicate 4 4 4 
+
+#set type 1 mass 100000
+set type 1 mass  10000
+set type 2 mass  3250
+set type 3 mass  325
+set type 4 mass  3250
+set type 5 mass  6000 #Mass reduction for CENP-B globular
+set type 6 mass  1600
+
+set type 1 shape 56 56 40
+set type 2 shape 24 24 24
+set type 3 shape 24 24 24
+set type 4 shape 24 24 24
+set type 5 shape 34 34 34 #Change size of CENP-B on input
+set type 6 shape 16 16 16
+
+#**** pair params go here****
+#
+pair_style lj/cut ${BC}
+pair_coeff 1 1  0.1 55 61.71
+pair_coeff 1 2  ${E1} ${B} ${BC}
+pair_coeff 1 3  ${E1} ${B} ${BC}
+pair_coeff 1 4  ${E1} ${B} ${BC} #Igual luego hay que bajarla
+pair_coeff 1 5  0.1 45.0 50.1    #Repulsive, weakly repulsive
+pair_coeff 1 6  ${E3} 36.0 108   #A quarter of DNA
+
+pair_coeff 2 2  0.1 ${A} ${AC}
+pair_coeff 2 3  0.1 ${A} ${AC}
+pair_coeff 2 4  0.1 ${A} ${AC}
+pair_coeff 2 5  0.01 29.0 32.53   #Should be kinda inert, weak
+pair_coeff 2 6  0.025 ${SM} ${SSM} #Repulsive, weak, might need to make stronger
+
+pair_coeff 3 3  0.1 ${A} ${AC}
+pair_coeff 3 4  0.1 ${A} ${AC}
+pair_coeff 3 5  0.025 29.0 32.53 #Repulsive, weak
+pair_coeff 3 6  0.025 ${SM} ${SSM}
+
+pair_coeff 4 4  0.1 ${A} ${AC}
+pair_coeff 4 5  0.025 29.0 32.53 #Repulsive, weak
+pair_coeff 4 6  0.025 ${SM} ${SSM} #Repulsive weak
+
+pair_coeff 5 5  0.05 34 38.2 #Repulsive half of nucl
+pair_coeff 5 6  0.01 25.0 28.05 #Very weakly rep
+
+pair_coeff 6 6 0.025 ${SP} ${SSP} #Repulsive, might need to make stronger
+
+pair_modify shift yes
+neighbor 50 bin
+neigh_modify every 1 delay 0
+
+special_bonds fene
+
+#bond_style  hybrid harmonic/DNA zero
+#bond_coeff  1 harmonic/DNA 0.0 0.0
+#bond_coeff  2 zero
+
+bond_style hybrid harmonic/DNA harmonic
+
+bond_coeff 1 harmonic/DNA 0.0 0.0
+bond_coeff 2 harmonic 10 20
+bond_coeff 3 harmonic 10 35
+
+group cores type 1
+group linker_dna type 2
+group nucl_dna type 3
+group nucl molecule > 0
+group cenp_dna type 4
+group cenpb type 5
+group idp type 6
+
+# remove interaction within rigid body
+neigh_modify exclude molecule/intra nucl
+
+compute q all property/atom quatw quati quatj quatk
+compute shape all property/atom shapex shapey shapez
+compute rg all gyration 
+
+# computes to calculate temperature of rigid bodies:
+
+#compute erot_ldna linker_dna erotate/asphere
+#compute etrans_ldna linker_dna ke
+
+#compute erot_nucl nucl erotate/rigid 1
+#compute etrans_nucl nucl ke/rigid 1
+
+#variable ldna_temp equal "2.0*(c_erot_ldna+c_etrans_ldna)/(0.0019872041*6*count(linker_dna))" 
+#variable nucl_temp equal "2.0*(c_erot_nucl+c_etrans_nucl)/(0.0019872041*6*count(cores))"
+
+#variable NATOMS equal count(all)
+#print ${NATOMS}
+ 
+#group FIBER1ALL id <= ${NATOMS}
+#group FIBER2ALL id >  ${NATOMS}
+
+#group C1 intersect cores FIBER1ALL
+#group C2 intersect cores FIBER2ALL
+
+#group end11 id 13
+#group end12 id ${NATOMS}
+#group end21 id $(v_NATOMS + 13)
+#group end22 id $(count(all))
+
+#group2ndx index.ndx
+
+timer timeout 33:00:00
+#timer timeout 00:09:00
+
+restart 10000 restart.1 restart.2
+
+dump	  1 all custom 50000 dna.dump &
+	     id xu yu zu c_q[1] c_q[2] c_q[3] c_q[4] &
+	      c_shape[1] c_shape[2] c_shape[3] mol type
+
+dump_modify 1 sort id
+ 
+dump	  2 cores custom 10000 cores.dump id xu yu zu mol type
+
+dump_modify 2 sort id
+ 
+comm_style tiled
+# Fix definitions
+fix 1 nucl rigid/nve/small molecule                    # Rigid body integration for 'nucl'
+fix bl all balance 1000 1.0 rcb                        # Balance load across MPI processes
+fix 2 linker_dna nve/asphere                           # Aspherical integration for 'linker_dna'
+fix 3 linker_dna langevin 1.0 1.0 0.1 ${SEED} angmom 3.0   # Langevin thermostat with angular momentum
+fix 4 nucl langevin 1.0 1.0 0.1 ${SEED}                # Langevin thermostat for rigid bodies
+fix 5 cenp_dna nve/asphere                             # Aspherical integration for 'cenp_dna'
+fix 6 cenp_dna langevin 1.0 1.0 0.1 ${SEED} angmom 3.0     # Langevin thermostat with angular momentum
+fix 7 cenpb nve                                        # Standard NVE integration for 'cenpb'
+fix 8 cenpb langevin 1.0 1.0 0.1 ${SEED}               # Langevin thermostat
+fix 9 idp nve                                          # Standard NVE integration for 'idp'
+fix 10 idp langevin 1.0 1.0 0.1 ${SEED}                # Langevin thermostat
+
+thermo_style	custom step temp pe ebond epair etotal spcpu c_rg lx ly lz press
+thermo          1000
+
+compute thermo linker_dna temp/asphere       
+thermo_modify temp thermo
+
+fix  3   linker_dna  langevin  ${T}  ${T}  500000  ${SEED}  angmom  3.0
+fix  4   nucl        langevin  ${T}  ${T}  500000  ${SEED}          
+fix  6   cenp_dna    langevin  ${T}  ${T}  500000  ${SEED}  angmom  3.0
+fix  8   cenpb       langevin  ${T}  ${T}  500000  ${SEED}          
+fix  10  idp         langevin  ${T}  ${T}  500000  ${SEED}          
+
+timestep 100
+run 100000000

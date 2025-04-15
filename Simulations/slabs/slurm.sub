@@ -1,0 +1,25 @@
+#!/bin/bash
+#SBATCH -J 1KX5fiber
+#SBATCH --nodes=1
+#SBATCH --ntasks=128
+#SBATCH --time=12:00:00
+#SBATCH --mail-type=ALL
+#SBATCH --account=su125
+module purge
+module load GCC/11.2.0 OpenMPI/4.1.1
+# Environment setup
+export OMP_NUM_THREADS=1
+export LD_LIBRARY_PATH=/sulis/easybuild/software/OpenMPI/4.1.1-GCC-11.2.0/lib:/sulis/easybuild/software/PMIx/4.1.0-GCCcore-11.2.0/lib:/sulis/easybuild/software/libfabric/1.13.2-GCCcore-11.2.0/lib:/sulis/easybuild/software/UCX/1.11.2-GCCcore-11.2.0/lib:/sulis/easybuild/software/libevent/2.1.12-GCCcore-11.2.0/lib:/sulis/easybuild/software/OpenSSL/1.1/lib:/sulis/easybuild/software/hwloc/2.5.0-GCCcore-11.2.0/lib:/sulis/easybuild/software/libpciaccess/0.16-GCCcore-11.2.0/lib:/sulis/easybuild/software/libxml2/2.9.10-GCCcore-11.2.0/lib:/sulis/easybuild/software/XZ/5.2.5-GCCcore-11.2.0/lib:/sulis/easybuild/software/numactl/2.0.14-GCCcore-11.2.0/lib:/sulis/easybuild/software/binutils/2.37-GCCcore-11.2.0/lib:/sulis/easybuild/software/zlib/1.2.11-GCCcore-11.2.0/lib:/sulis/easybuild/software/GCCcore/11.2.0/lib64::/home/m/mjm261/lammps/CollepardoLab_Chromatin_Model/build/chromatin.so
+# Print job details
+echo -e "JobID: $SLURM_JOB_ID\nTime: $(date)\nHostname: $(hostname)\nCurrent Directory: $(pwd)\n======"
+# Calculate tasks per script
+TASKS_PER_SCRIPT=$((SLURM_NTASKS / 8))
+# Configuration directories
+#declare -a configs=("0.15" "0.115" "0.082" "0.07" "0.06" "0.052" "0.05" "0.042")
+declare -a configs=("0.073" "0.074" "0.075" "0.076" "0.077" "0.078" "0.079" "0.080")
+# Run simulations in parallel using a loop
+for i in "${!configs[@]}"; do
+  srun --exclusive -N1 -n$TASKS_PER_SCRIPT sh -c "cd ${configs[$i]} && /home/m/mjm261/lammps/build/lmp -in tremd.in > out_$((i+1)).txt" &
+done
+# Wait for all background jobs to finish
+wait
