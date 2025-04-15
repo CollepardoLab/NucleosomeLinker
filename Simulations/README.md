@@ -22,6 +22,23 @@ bash initial.sh
 
 This creates subfolders of the desired simulation salts and sets up the replica exchange. 
 
-4. To run the simulation, submit tremd.in in lammps, in your desired HPC architecture. 
+4. To run the simulation, submit tremd.in in lammps, in your desired HPC architecture, or run, for each salt
+
+```
+lmp -partition 16x1 -in tremd.in
+```
+
+5. Finally, to obtain representative snapshots of relaxed chromatin fibers, demix the trajectories by running
+
+```
+bash demix.sh  
+```
+
+and extract frames by 
+
+```
+bash get_frames.sh
+```
+
 
 
