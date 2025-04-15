@@ -1,0 +1,348 @@
+plugin load chromatin.so
+# VARIABLES
+variable I world  0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15
+variable T world 300.00 315.86 332.38 349.59 367.52 386.18 405.66 425.95 447.10 469.14 492.12 516.09 541.04 567.04 594.14 600.00
+#variable I index 0
+#variable T index 300
+variable fname index data.txt
+variable simname index dna
+variable DT equal 250
+#variable T equal 300.0
+variable E1 equal EECC
+#variable E2 equal 6.0
+variable RC equal 5.0
+variable A equal SSCC
+variable B equal 40
+variable SEED equal 29806
+
+variable AC equal "1.122*v_A"
+variable BC equal "3*v_B"
+
+variable E3 equal "0.25*v_E1"
+
+variable SP equal "0.667*v_A" #Sigma of my protein
+variable SM equal "0.5*v_SP+0.5*v_A" #Mixing rules dna_prot
+
+variable SSP equal "1.122*v_SP" #Both repulsive
+variable SSM equal "1.122*v_SM"
+
+# Initialization
+units		real
+atom_style   hybrid ellipsoid angle charge
+
+boundary s s s
+
+log 	log.dna_temper_${I}.txt
+read_data	${fname}
+
+set type 1 mass  10000
+set type 2 mass  3250
+set type 3 mass  325
+set type 4 mass  3250
+set type 5 mass  6000 #Mass reduction for CENP-B globular
+set type 6 mass  1600
+
+set type 1 shape 56 56 40
+set type 2 shape 24 24 24
+set type 3 shape 24 24 24
+set type 4 shape 24 24 24
+set type 5 shape 34 34 34 #Change size of CENP-B on input
+set type 6 shape 16 16 16
+
+#**** pair params go here****
+
+pair_style lj/cut ${BC}
+pair_coeff 1 1  0.1 55 61.71
+pair_coeff 1 2  ${E1} ${B} ${BC}
+pair_coeff 1 3  ${E1} ${B} ${BC}
+pair_coeff 1 4  ${E1} ${B} ${BC} #Igual luego hay que bajarla
+pair_coeff 1 5  0.1 45.0 50.1    #Repulsive, weakly repulsive
+pair_coeff 1 6  ${E3} 36.0 108   #A quarter of DNA
+
+pair_coeff 2 2  0.1 ${A} ${AC}
+pair_coeff 2 3  0.1 ${A} ${AC}
+pair_coeff 2 4  0.1 ${A} ${AC}
+pair_coeff 2 5  0.01 29.0 32.53   #Should be kinda inert, weak
+pair_coeff 2 6  0.025 ${SM} ${SSM} #Repulsive, weak, might need to make stronger
+
+pair_coeff 3 3  0.1 ${A} ${AC}
+pair_coeff 3 4  0.1 ${A} ${AC}
+pair_coeff 3 5  0.025 29.0 32.53 #Repulsive, weak
+pair_coeff 3 6  0.025 ${SM} ${SSM}
+
+pair_coeff 4 4  0.1 ${A} ${AC}
+pair_coeff 4 5  0.025 29.0 32.53 #Repulsive, weak
+pair_coeff 4 6  0.025 ${SM} ${SSM} #Repulsive weak
+
+pair_coeff 5 5  0.05 34 38.2 #Repulsive half of nucl
+pair_coeff 5 6  0.01 25.0 28.05 #Very weakly rep
+
+pair_coeff 6 6 0.025 ${SP} ${SSP} #Repulsive, might need to make stronger
+
+#pair_style lj/cut ${BC}
+#pair_coeff 1 1  0.1 55 61.71
+#pair_coeff 1 2  ${E1} ${B} ${BC}
+#pair_coeff 1 3  ${E1} ${B} ${BC}
+#pair_coeff 2 2  0.1 ${A} ${AC}
+#pair_coeff 2 3  0.1 ${A} ${AC}
+#pair_coeff 3 3  0.1 ${A} ${AC}
+
+pair_modify shift yes
+neighbor 50 bin
+neigh_modify every 1 delay 0
+
+special_bonds fene
+
+#bond_style  hybrid harmonic/DNA zero
+#bond_coeff  1 harmonic/DNA 0.0 0.0
+#bond_coeff  2 zero
+
+bond_style hybrid harmonic/DNA harmonic
+
+bond_coeff 1 harmonic/DNA 0.0 0.0
+bond_coeff 2 harmonic 10 20
+bond_coeff 3 harmonic 10 35
+
+group cores type 1
+group linker_dna type 2
+group nucl_dna type 3
+group nucl molecule > 0
+group cenp_dna type 4
+group cenpb type 5
+group idp type 6
+
+# remove interaction within rigid body
+neigh_modify exclude molecule/intra nucl
+
+
+## delete bonds that will be fixed rigid
+#variable NN equal $(count(cores))
+#variable n loop ${NN}
+#label nloop
+#
+#group thisnucl molecule ${n}
+#
+#delete_bonds thisnucl bond 1 remove special
+#
+#next n
+#jump SELF nloop
+
+
+## type 2 are left over from previous version, not needed here
+#delete_bonds all bond 2 remove special
+
+
+compute q all property/atom quatw quati quatj quatk
+compute shape all property/atom shapex shapey shapez
+compute rg all gyration 
+
+# computes to calculate temperature of rigid bodies:
+
+#compute erot_ldna linker_dna erotate/asphere
+#compute etrans_ldna linker_dna ke
+
+#compute erot_nucl nucl erotate/rigid 1
+#compute etrans_nucl nucl ke/rigid 1
+
+#variable ldna_temp equal "2.0*(c_erot_ldna+c_etrans_ldna)/(0.0019872041*6*count(linker_dna))" 
+#variable nucl_temp equal "2.0*(c_erot_nucl+c_etrans_nucl)/(0.0019872041*6*count(cores))"
+
+
+timer timeout 11:50:00
+
+restart 10000 restart_${I}.1 restart_${I}.2
+
+
+dump	  1 all custom 10000 dna_temper_${I}.dump &
+	     id xu yu zu c_q[1] c_q[2] c_q[3] c_q[4] &
+	      c_shape[1] c_shape[2] c_shape[3] mol q type fx fy fz
+
+dump_modify 1 sort id
+
+variable NB equal $(count(all))
+
+group end1 id 13
+group end2 id ${NB}
+
+comm_style tiled
+
+comm_style tiled
+
+# Fix definitions
+fix 1 nucl rigid/nve/small molecule                    # Rigid body integration for 'nucl'
+fix bl all balance 1000 1.0 rcb                        # Balance load across MPI processes
+fix 2 linker_dna nve/asphere                           # Aspherical integration for 'linker_dna'
+fix 3 linker_dna langevin 1.0 1.0 0.1 123 angmom 3.0   # Langevin thermostat with angular momentum
+fix 4 nucl langevin 1.0 1.0 0.1 123                    # Langevin thermostat for rigid bodies
+fix 5 cenp_dna nve/asphere                             # Aspherical integration for 'cenp_dna'
+fix 6 cenp_dna langevin 1.0 1.0 0.1 123 angmom 3.0     # Langevin thermostat with angular momentum
+fix 7 cenpb nve                                        # Standard NVE integration for 'cenpb'
+fix 8 cenpb langevin 1.0 1.0 0.1 123                   # Langevin thermostat
+fix 9 idp nve                                          # Standard NVE integration for 'idp'
+fix 10 idp langevin 1.0 1.0 0.1 123                    # Langevin thermostat
+
+# Add force to specific groups
+fix f1 end1 addforce 0 0 1                             # Add upward force to 'end1'
+fix f2 end2 addforce 0 0 -1                            # Add downward force to 'end2'
+
+# Recenter the simulation box
+fix rc all recenter INIT INIT INIT                     # Recenter coordinates to initial box center
+
+# Compute temperature
+#compute temp_linker linker_dna temp/asphere            # Temp for aspherical 'linker_dna'
+#compute temp_cenp_box cenp_dna temp/asphere            # Temp for aspherical 'cenp_dna'
+#compute temp_cenpb cenpb temp                          # Temp for 'cenpb'
+#compute temp_idp idp temp                              # Temp for 'idp'
+
+# Use rigid fix's temperature as a global value
+#variable temp_nucl equal f_1[1]                        # Extract temperature from 'fix 1'
+
+thermo_style    custom step temp pe ebond epair etotal spcpu c_rg
+thermo          1000
+
+compute thermo linker_dna temp/asphere       
+thermo_modify temp thermo
+
+# Custom thermo output
+#thermo_style custom step temp pe ebond epair etotalp
+#thermo 1000  # Output every 1000 steps
+
+timestep 0.00001
+run 1000
+
+timestep 0.0001
+run 1000
+
+fix 3 linker_dna  langevin 1.0 1.0 1 123 angmom 3.0
+fix 4 nucl  langevin 1.0 1.0 1 123
+fix 6 cenp_dna langevin 1.0 1.0 1 2192305 angmom 3.0
+fix 8 cenpb langevin 1.0 1.0 1 2192305
+fix 10 idp langevin 1.0 1.0 1 129837
+
+timestep 0.001
+run 1000
+
+timestep 0.01
+run 1000
+
+timestep 0.1
+run 1000
+
+timestep 10
+
+fix 3 linker_dna  langevin ${T} ${T} 1000 ${SEED} angmom 3.0
+fix 4 nucl  langevin ${T} ${T} 1000 ${SEED}
+fix 6 cenp_dna langevin ${T} ${T} 1000 292305 angmom 3.0
+fix 8 cenpb langevin ${T} ${T} 1000 2192305
+fix 10 idp langevin ${T} ${T} 1000 129837
+run 1000
+
+timestep 10
+
+fix 3 linker_dna  langevin ${T} ${T} 10000 ${SEED} angmom 3.0
+fix 4 nucl  langevin ${T} ${T} 10000 ${SEED}
+fix 6 cenp_dna langevin ${T} ${T} 10000 292305 angmom 3.0
+fix 8 cenpb langevin ${T} ${T} 10000 2192305
+fix 10 idp langevin ${T} ${T} 10000 129837
+run 1000
+
+timestep 100
+fix 3 linker_dna  langevin ${T} ${T} 50000 ${SEED} angmom 3.0
+fix 4 nucl  langevin ${T} ${T} 50000 ${SEED}
+fix 6 cenp_dna langevin ${T} ${T} 50000 292305 angmom 3.0
+fix 8 cenpb langevin ${T} ${T} 50000 2192305 
+fix 10 idp langevin ${T} ${T} 50000 129837 
+run 1000
+
+fix 3 linker_dna  langevin ${T} ${T} 500000 ${SEED} angmom 3.0
+fix 4 nucl  langevin ${T} ${T} 500000 ${SEED}
+fix 6 cenp_dna langevin ${T} ${T} 500000 292305 angmom 3.0
+fix 8 cenpb langevin ${T} ${T} 500000 2192305
+fix 10 idp langevin ${T} ${T} 500000 129837
+
+timestep ${DT}
+run 10000
+
+unfix f1
+unfix f2
+
+fix 1 nucl rigid/nve/small molecule
+fix 2 linker_dna  nve/asphere
+fix 3 linker_dna  langevin 1.0 1.0 0.1 123 angmom 3.0
+fix 4 nucl  langevin 1.0 1.0 0.1 123
+fix 5 cenp_dna nve/asphere
+fix 6 cenp_dna langevin 1.0 1.0 0.1 123 angmom 3.0
+fix 7 cenpb nve
+fix 8 cenpb langevin 1.0 1.0 0.1 123
+fix 9 idp nve
+fix 10 idp langevin 1.0 1.0 0.1 123
+
+fix rc all recenter INIT INIT INIT
+
+timestep 0.00001
+run 1000
+
+timestep 0.0001
+run 1000
+
+fix 3 linker_dna  langevin 1.0 1.0 1 123 angmom 3.0
+fix 4 nucl  langevin 1.0 1.0 1 123
+fix 6 cenp_dna langevin 1.0 1.0 1 292305 angmom 3.0
+fix 8 cenpb langevin 1.0 1.0 1 2192305
+fix 10 idp langevin 1.0 1.0 1 129837
+timestep 0.001
+run 1000
+
+timestep 0.01
+run 1000
+
+timestep 0.1
+run 1000
+
+timestep 10
+
+fix 3 linker_dna  langevin ${T} ${T} 1000 ${SEED} angmom 3.0
+fix 4 nucl  langevin ${T} ${T} 1000 ${SEED}
+fix 6 cenp_dna langevin ${T} ${T} 1000 292305 angmom 3.0
+fix 8 cenpb langevin ${T} ${T} 1000 2192305
+fix 10 idp langevin ${T} ${T} 1000 129837 
+run 1000
+
+timestep 10
+
+fix 3 linker_dna  langevin ${T} ${T} 10000 ${SEED} angmom 3.0
+fix 4 nucl  langevin ${T} ${T} 10000 ${SEED}
+fix 6 cenp_dna langevin ${T} ${T} 10000 292305 angmom 3.0
+fix 8 cenpb langevin ${T} ${T} 10000 2192305 
+fix 10 idp langevin ${T} ${T} 10000 129837
+run 1000
+
+timestep 100
+fix 3 linker_dna  langevin ${T} ${T} 50000 ${SEED} angmom 3.0
+fix 4 nucl  langevin ${T} ${T} 50000 ${SEED}
+fix 6 cenp_dna langevin ${T} ${T} 50000 292305 angmom 3.0
+fix 8 cenpb langevin ${T} ${T} 50000 2192305
+fix 10 idp langevin ${T} ${T} 50000 129837
+run 1000
+
+fix 3 linker_dna  langevin ${T} ${T} 500000 ${SEED} angmom 3.0
+fix 4 nucl  langevin ${T} ${T} 500000 ${SEED}
+fix 6 cenp_dna langevin ${T} ${T} 500000 292305 angmom 3.0
+fix 8 cenpb langevin ${T} ${T} 500000 2192305 
+fix 10 idp langevin ${T} ${T} 500000 129837
+
+timestep 100
+run 10000
+
+group prot union cenpb nucl idp
+group dna union linker_dna cenp_dna
+
+unfix 3
+unfix 4
+unfix 6
+unfix 8
+unfix 10
+fix 11 prot langevin ${T} ${T} 500000 ${SEED}
+fix 12 dna langevin ${T} ${T} 500000 ${SEED} angmom 3.0
+
+temper2_mod 10000000 100 $T 11 12 1 123 123
