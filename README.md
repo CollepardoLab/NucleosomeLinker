@@ -14,7 +14,7 @@ To run a demo for a slab system:
 
 1. Move to the "Demo" directory
 
-2. run with lammps
+2. Run with lammps
 
 | mpirun -np 1 ./lmp_DNA_mpi -in in.run
 
