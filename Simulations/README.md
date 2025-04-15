@@ -59,12 +59,12 @@ and follow the promps: simulation name, number of fibers you desire and number o
 
 3. Inside the simulation folder, run
 ```
-   bash submit_all_create.sh
+bash submit_all_create.sh
 ```
 This creates the salbs by compressing. Depending on your HPC architecture you may need to modify submission scripts - in this folder,r the working example is for Sulis HPC.
 4. Finally, after the creation is over,  run
 ```
-   bash submit_all_continue.sh
+bash submit_all_continue.sh
 ```
 which produces the final trajectory.
 
