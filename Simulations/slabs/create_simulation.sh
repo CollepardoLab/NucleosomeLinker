@@ -20,8 +20,8 @@ declare -a FOLDERS
 
 for (( i=1; i<=NFOLDERS; i++ )); do
   echo
-  echo "=== Data folder ==="
-  read -p "Folder name (e.g. 25, Control): " fname
+  echo "=== Data folder name==="
+  read -p "Folder name (e.g. 25, Control, etc): " fname
 
   FOLDERS+=( "$fname" )
 done
@@ -129,7 +129,7 @@ for salt in "${SALTS[@]}"; do
 
   mapfile -t chosen < <(printf "%s\n" "${chosen[@]}" | shuf)
 
-  echo "  -> Picked $total_chosen mixed files for salt '$salt' (ideal was $N)."
+  echo "  -> Picked $total_chosen files for salt '$salt' (ideal was $N)."
 
 
   dir="$SIMNAME/$salt"
