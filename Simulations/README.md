@@ -28,7 +28,7 @@ This creates subfolders of the desired simulation salts and sets up the replica 
 lmp -partition 16x1 -in tremd.in
 ```
 
-5. Finally, to obtain representative snapshots of relaxed chromatin fibers, demix the trajectories by running
+5. Finally, to obtain representative snapshots of relaxed chromatin fibres, demix the trajectories by running
 
 ```
 bash demix.sh  
@@ -37,16 +37,9 @@ bash demix.sh
 and extract frames by 
 
 ```
-bash get_frames.sh
+bash create_data.sh
 ```
-
-Finally, run 
-
-```
-python multiple_dump_to_data.py
-```
-
-to ensure the frames have adequate file structure to be parsed as inputs for the slab conformation.
+which ensures the frames have adequate file structure to be parsed as inputs for the slab conformation.
 
 
 
