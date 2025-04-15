@@ -42,4 +42,31 @@ bash create_data.sh
 which ensures the frames have adequate file structure to be parsed as inputs for the slab conformation.
 
 
+## Direct Coexistence Simulation
+
+To produce a full-phase diagram:
+
+1. Run ìn the parent directly the following command to move the relevant data into the desired folder in slabs
+
+```
+bash move_data.sh
+```
+2. Run, in slabs,
+```
+bash create_simulation.sh
+```
+and follow the promps: simulation name, number of fibers you desire and number of salts you want to sample. Not that these salts have to have sampling in repex before this step. 
+
+3. Inside the simulation folder, run
+```
+   bash submit_all_create.sh
+```
+This creates the salbs by compressing. Depending on your HPC architecture you may need to modify submission scripts - in this folder,r the working example is for Sulis HPC.
+4. Finally, after the creation is over,  run
+```
+   bash submit_all_continue.sh
+```
+which produces the final trajectory.
+
+
 
