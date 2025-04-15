@@ -13,7 +13,7 @@ python make_variable_nrl_N_from_1kx5.py
 
 This creates a data/txt file and a DNA_sequence.txt file corresponding to the desired chromatin fibre. 
 
-3. After creating a fiber, we generate via replica exchange a series of snapshots for a single chromatin fibre, in order to speed up sampling in a condensate bulk and avoid arrested configurations.
+3. After creating a fibre, we generate via replica exchange a series of snapshots for a single chromatin fibre in order to speed up sampling in a condensate bulk and avoid arrested configurations.
 
 To do so, simply run 
 ```
