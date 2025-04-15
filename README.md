@@ -12,6 +12,11 @@ For questions, contact Julia Maristany in mjm261@cam.ac.uk
 - Python 3.6+ for analysis scripts  
 - Optional: Ovito, VMD, or PyMOL for trajectory visualization
 
+### Tested on:
+- [CSD3 Peta-4 Cluster](https://www.hpc.cam.ac.uk/systems/peta-4) with Intel 2017 compilers  
+- [ARCHER](https://www.archer2.ac.uk/) HPC (Cray system with GNU and Cray compilers)  
+- [Sulis Tier 2 HPC](https://warwick.ac.uk/fac/cross_fac/hpc/systems/sulis/)
+
 ## Installation Guide
 Please follow the instructions for building our custom LAMMPS code from the multiscale model repository: https://github.com/CollepardoLab/CollepardoLab_Chromatin_Model
 
