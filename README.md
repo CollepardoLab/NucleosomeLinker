@@ -12,11 +12,11 @@ Please follow the instructions for building our custom LAMMPS code from the mult
 ## Demo
 To run a demo for a slab system:
 
-move to the "demo" directory
+1. Move to the "Demo" directory
 
-run with lammps
+2. run with lammps
 
-mpirun -np 1 ./lmp_DNA_mpi -in in.run
+| mpirun -np 1 ./lmp_DNA_mpi -in in.run
 
 It will produce two LAMMPS trajectory file "dna.dump" and "cores.dump", a reduced version without the DNA. These can be viewed in Ovito (https://www.ovito.org/), VMD or Pymol. 
 
