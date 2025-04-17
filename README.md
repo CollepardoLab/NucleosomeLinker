@@ -46,7 +46,7 @@ To fully reproduce phase diagrams one needs to vary the parameters E1 and A in t
 
 ## Analysis
 
-Under Analysis, all custom Python scripts to analyze the trajectories can be found.  More details are in the Analysis folder.
+Under Analysis, all custom Python scripts to analyze the trajectories can be found. 
 
 ## License
 
